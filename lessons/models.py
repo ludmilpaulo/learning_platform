@@ -35,6 +35,36 @@ class Course(models.Model):
     def __str__(self):
         return self.title
 
+    def get_students_progress(self):
+        """
+        Get progress of all students enrolled in the course.
+        """
+        progress_list = []
+        for student in self.students.all():
+            progress = CourseProgress.objects.filter(student=student, course=self).first()
+            if progress:
+                student_progress = {
+                    "student": student.username,
+                    "progress_percentage": progress.get_progress_percentage(),
+                    "completed_modules": progress.completed_modules.count(),
+                    "total_modules": self.modules.count(),
+                    "completed_contents": progress.completed_contents.count(),
+                    "total_contents": sum(module.contents.count() for module in self.modules.all())
+                }
+            else:
+                student_progress = {
+                    "student": student.username,
+                    "progress_percentage": 0,
+                    "completed_modules": 0,
+                    "total_modules": self.modules.count(),
+                    "completed_contents": 0,
+                    "total_contents": sum(module.contents.count() for module in self.modules.all())
+                }
+
+            progress_list.append(student_progress)
+
+        return progress_list
+
 
 class Module(models.Model):
     """Model representing a module in a course, which can contain multiple contents."""

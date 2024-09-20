@@ -1,6 +1,7 @@
 from django.urls import path
 
 from lessons.content import CreateContentView
+from lessons.students_progress import get_students_progress
 from lessons.tutor_content import create_content
 from lessons.tutor_module import add_module_to_course
 from lessons.tutor_module_contents import get_module_contents
@@ -17,6 +18,7 @@ urlpatterns = [
     path('courses/<int:course_id>/modules/', ModuleListCreateView.as_view(), name='module-list-create'),
     path('modules/<int:pk>/', ModuleDetailView.as_view(), name='module-detail'),
     path('get-content-types/', get_content_types, name='get-content-types'),
+    path('courses/<int:course_id>/students-progress/', get_students_progress, name='students-progress'),
 
     # Content CRUD
     path('modules/<int:module_id>/contents/', create_content, name='content-create'),
