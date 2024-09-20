@@ -1,0 +1,36 @@
+<html>
+  <body style="font-family: Arial, sans-serif; margin: 0; padding: 0;">
+    <div style="background: linear-gradient(to right, #3b82f6, #6366f1); padding: 40px; text-align: center; color: white;">
+      <h1>Bem-vindo ao curso {{ course_name }}!</h1>
+    </div>
+    <div style="padding: 20px;">
+      <p>Olá <strong>{{ name }}</strong>,</p>
+      <p>
+        Parabéns pela sua inscrição no curso <strong>{{ course_name }}</strong>, oferecido por <strong>{{ instructor_name }}</strong>!
+      </p>
+      <p>
+        Estamos muito felizes em tê-lo(a) em nossa plataforma de aprendizado online. A jornada que você está prestes a começar será cheia de novos conhecimentos e oportunidades. O caminho para o sucesso começa agora!
+      </p>
+      <p style="font-size: 18px;">
+        🎓 Aqui na <strong>{{ course_name }}</strong>, você terá acesso aos melhores conteúdos e materiais preparados especialmente para o seu aprendizado. Se esforce e faça o melhor!
+      </p>
+      <p style="font-size: 18px;">
+        🧑‍🏫 Seu instrutor, <strong>{{ instructor_name }}</strong>, estará aqui para guiá-lo em cada passo dessa jornada incrível de aprendizado.
+      </p>
+      <p style="font-size: 18px; color: #3b82f6;">
+        Acesse sua conta com as seguintes credenciais:
+      </p>
+      <ul>
+        <li><strong>Email:</strong> {{ email }}</li>
+        <li><strong>Senha:</strong> {{ password }}</li>
+      </ul>
+      <p>
+        <strong>Dica para senha:</strong> Sua senha é composta pelo seu sobrenome, data de nascimento (no formato YYYYMMDD) e número de telefone.
+      </p>
+      <p>
+        Acesse sua conta <a href="{{ login_url }}" style="color: #3b82f6;">clicando aqui</a> e explore o curso. Vamos juntos rumo ao sucesso!
+      </p>
+      <p>Atenciosamente,<br>Equipe de Aprendizado Online</p>
+    </div>
+  </body>
+</html>

@@ -30,10 +30,7 @@ class TutorProfile(BaseProfile):
 
 
 class StudentProfile(BaseProfile):
-    grade = models.CharField(max_length=20, blank=True)  # Student's grade or education level
     enrolled_courses = models.ManyToManyField(Course, blank=True)  # Courses the student is enrolled in
-    guardian_name = models.CharField(max_length=100, blank=True)  # Name of the guardian if applicable
-    guardian_contact = models.CharField(max_length=15, blank=True)  # Contact number for the guardian
     is_active = models.BooleanField(default=True)
 
     def __str__(self):

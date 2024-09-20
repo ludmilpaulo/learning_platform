@@ -1,7 +1,10 @@
 from django.urls import path
 
-from lessons.tutor_content import ContentCreateView, CreateFileView, CreateImageView, CreateTextView, CreateVideoView, get_content_types
-from lessons.tutor_views import ContentDetailView, ContentListView, ModuleDetailView, ModuleListCreateView
+from lessons.content import CreateContentView
+from lessons.tutor_content import create_content
+from lessons.tutor_module import add_module_to_course
+from lessons.tutor_module_contents import get_module_contents
+from lessons.tutor_views import ContentDetailView, ContentListView, ModuleDetailView, ModuleListCreateView, get_content_types
 from .views import (
     CourseProgressListCreateView,
     CourseProgressDetailView,
@@ -14,21 +17,12 @@ urlpatterns = [
     path('courses/<int:course_id>/modules/', ModuleListCreateView.as_view(), name='module-list-create'),
     path('modules/<int:pk>/', ModuleDetailView.as_view(), name='module-detail'),
     path('get-content-types/', get_content_types, name='get-content-types'),
-    
-    path('text/', CreateTextView.as_view(), name='create-text'),
-    
-    # Video Content URL
-    path('video/', CreateVideoView.as_view(), name='create-video'),
-    
-    # Image Content URL
-    path('image/', CreateImageView.as_view(), name='create-image'),
-    
-    # File Content URL
-    path('file/', CreateFileView.as_view(), name='create-file'),
 
     # Content CRUD
-    path('modules/<int:module_id>/contents/', ContentCreateView.as_view(), name='content-create'),
+    path('modules/<int:module_id>/contents/', create_content, name='content-create'),
+    path('modules/<int:module_id>/get_contents/', get_module_contents, name='module-contents'),
     path('modules_view/<int:module_id>/contents/', ContentListView.as_view(), name='content-create'),
+    path('courses/<int:course_id>/modules/', add_module_to_course, name='add_module_to_course'),
     path('contents/<int:pk>/', ContentDetailView.as_view(), name='content-detail'),
     path('courses/', CreateCourseView.as_view(), name='course-create'),
     path('courses/user/', UserCoursesView.as_view(), name='user_courses'),  # Adjust this path if needed

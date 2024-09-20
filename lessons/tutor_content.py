@@ -1,152 +1,138 @@
-from rest_framework import generics
+from rest_framework.decorators import api_view, parser_classes, permission_classes
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import AllowAny
+from rest_framework.authtoken.models import Token
 from .models import Content, Module, Text, Image, Video, File
-from .serializers import ContentSerializer
 from django.contrib.contenttypes.models import ContentType
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.exceptions import PermissionDenied
-from django.contrib.contenttypes.models import ContentType
-from rest_framework.response import Response
-from rest_framework.decorators import api_view
-from rest_framework.permissions import IsAuthenticated
-
-@api_view(['GET'])
-def get_content_types(request):
-    # Get the content types for your specific models
-    content_types = {
-        'text': ContentType.objects.get(model='text').pk,
-        'image': ContentType.objects.get(model='image').pk,
-        'video': ContentType.objects.get(model='video').pk,
-        'file': ContentType.objects.get(model='file').pk,
-    }
-    return Response(content_types)
-
-
-
 import logging
 
 logger = logging.getLogger(__name__)
-class ContentCreateView(generics.CreateAPIView):
-    serializer_class = ContentSerializer
-    permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]  # Handles file uploads
 
-    def perform_create(self, serializer):
-        # Log the incoming data and files
-        logger.info(f"Request data: {self.request.data}")
-        logger.info(f"Request files: {self.request.FILES}")
+@api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
+@permission_classes([AllowAny])  # Allow anyone to access this view
+def create_content(request, module_id):
+    """
+    Function-based view to create content for a specific module.
+    Token is extracted from the request body.
+    """
+    data = request.data
 
-        # Get the module
-        module_id = self.kwargs['module_id']
-        try:
-            module = Module.objects.get(pk=module_id)
-        except Module.DoesNotExist:
-            logger.error(f"Module {module_id} not found.")
-            raise PermissionDenied("Module not found.")
+    # Try to fetch the token from the request body and authenticate the user
+    try:
+        token_key = data["token"]
+        logger.info(f"Received token: {token_key}")  # Log the received token
+        user = Token.objects.get(key=token_key).user
+        logger.info(f"Authenticated user: {user.username}")  # Log the authenticated user
+    except KeyError:
+        logger.error("Token ausente no corpo da solicitação.")
+        return Response(
+            {"status": "failed", "error": "Token de acesso ausente."},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    except Token.DoesNotExist:
+        logger.error(f"Token inválido: {token_key}")
+        return Response(
+            {"status": "failed", "error": "Token de acesso inválido."},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
-        # Check ownership
-        if module.course.owner != self.request.user:
-            logger.error(f"User {self.request.user} does not have permission to add content to module {module_id}.")
-            raise PermissionDenied("You do not have permission to add content to this module.")
+    # Validate the module exists
+    try:
+        module = Module.objects.get(pk=module_id)
+    except Module.DoesNotExist:
+        return Response(
+            {'detail': 'Módulo não encontrado.'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
 
-        # Get the content type
-        content_type_name = self.request.data.get('content_type')
-        try:
-            content_type = ContentType.objects.get(model=content_type_name.lower())
-        except ContentType.DoesNotExist:
-            logger.error(f"Invalid content type: {content_type_name}")
-            raise ValidationError({"content_type": "Invalid content type."})
+    # Skip ownership check if you want to allow all users to create content
+    # Check if the user is the owner of the course (optional, you can remove this check)
+    if module.course.owner != user:
+        return Response(
+            {'detail': 'Você não tem permissão para adicionar conteúdo a este módulo.'}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
 
-        # Process content based on type
-        if content_type_name == 'text':
-            content = self.request.data.get('content')
-            if not content:
-                logger.error("Text content is missing.")
-                raise ValidationError("Text content is required.")
-            logger.info("Creating text content.")
-            text_content = Text.objects.create(
-                owner=self.request.user,
-                title=self.request.data.get('title', 'Text Content'),
-                content=content
+    # Extract and validate the content type
+    content_type_name = request.data.get('content_type')
+    if not content_type_name:
+        return Response(
+            {'detail': 'O tipo de conteúdo é obrigatório.'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Try to fetch the content type
+    try:
+        content_type = ContentType.objects.get(model=content_type_name.lower())
+    except ContentType.DoesNotExist:
+        return Response(
+            {'detail': 'Tipo de conteúdo inválido.'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Process the content based on the type
+    if content_type_name == 'text':
+        content = request.data.get('content')
+        if not content:
+            return Response(
+                {'detail': 'O conteúdo de texto é obrigatório.'}, 
+                status=status.HTTP_400_BAD_REQUEST
             )
-            serializer.save(module=module, content_type=content_type, object_id=text_content.id)
+        text_content = Text.objects.create(
+            owner=user,
+            title=request.data.get('title', 'Conteúdo de Texto'),
+            content=content
+        )
+        Content.objects.create(module=module, content_type=content_type, object_id=text_content.id)
 
-        elif content_type_name == 'video':
-            url = self.request.data.get('url')
-            if not url:
-                logger.error("Video URL is missing.")
-                raise ValidationError("Video URL is required.")
-            logger.info("Creating video content.")
-            video_content = Video.objects.create(
-                owner=self.request.user,
-                title=self.request.data.get('title', 'Video Content'),
-                url=url
+    elif content_type_name == 'video':
+        url = request.data.get('url')
+        if not url:
+            return Response(
+                {'detail': 'O URL do vídeo é obrigatório.'}, 
+                status=status.HTTP_400_BAD_REQUEST
             )
-            serializer.save(module=module, content_type=content_type, object_id=video_content.id)
+        video_content = Video.objects.create(
+            owner=user,
+            title=request.data.get('title', 'Conteúdo de Vídeo'),
+            url=url
+        )
+        Content.objects.create(module=module, content_type=content_type, object_id=video_content.id)
 
-        elif content_type_name == 'image':
-            if 'file' not in self.request.FILES:
-                logger.error("Image file is missing.")
-                raise ValidationError("Image file is required.")
-            logger.info("Creating image content.")
-            image_content = Image.objects.create(
-                owner=self.request.user,
-                title=self.request.data.get('title', 'Image Content'),
-                file=self.request.FILES['file']
+    elif content_type_name == 'image':
+        if 'file' not in request.FILES:
+            return Response(
+                {'detail': 'O arquivo de imagem é obrigatório.'}, 
+                status=status.HTTP_400_BAD_REQUEST
             )
-            serializer.save(module=module, content_type=content_type, object_id=image_content.id)
+        image_content = Image.objects.create(
+            owner=user,
+            title=request.data.get('title', 'Conteúdo de Imagem'),
+            file=request.FILES['file']
+        )
+        Content.objects.create(module=module, content_type=content_type, object_id=image_content.id)
 
-        elif content_type_name == 'file':
-            if 'file' not in self.request.FILES:
-                logger.error("File is missing.")
-                raise ValidationError("File is required.")
-            logger.info("Creating file content.")
-            file_content = File.objects.create(
-                owner=self.request.user,
-                title=self.request.data.get('title', 'File Content'),
-                file=self.request.FILES['file']
+    elif content_type_name == 'file':
+        if 'file' not in request.FILES:
+            return Response(
+                {'detail': 'O arquivo é obrigatório.'}, 
+                status=status.HTTP_400_BAD_REQUEST
             )
-            serializer.save(module=module, content_type=content_type, object_id=file_content.id)
+        file_content = File.objects.create(
+            owner=user,
+            title=request.data.get('title', 'Conteúdo de Arquivo'),
+            file=request.FILES['file']
+        )
+        Content.objects.create(module=module, content_type=content_type, object_id=file_content.id)
 
-        logger.info("Content creation successful.")
+    else:
+        return Response(
+            {'detail': 'Tipo de conteúdo não suportado.'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
-
-from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
-from .models import Text, Image, Video, File
-from .serializers import TextSerializer, ImageSerializer, VideoSerializer, FileSerializer
-
-# Text Content Creation View
-class CreateTextView(generics.CreateAPIView):
-    serializer_class = TextSerializer
-    permission_classes = [IsAuthenticated]
-
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
-
-# Video Content Creation View
-class CreateVideoView(generics.CreateAPIView):
-    serializer_class = VideoSerializer
-    permission_classes = [IsAuthenticated]
-
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
-
-# Image Content Creation View
-class CreateImageView(generics.CreateAPIView):
-    serializer_class = ImageSerializer
-    permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]  # For handling file uploads
-
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
-
-# File Content Creation View
-class CreateFileView(generics.CreateAPIView):
-    serializer_class = FileSerializer
-    permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]  # For handling file uploads
-
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+    return Response({'detail': 'Conteúdo criado com sucesso!'}, status=status.HTTP_201_CREATED)

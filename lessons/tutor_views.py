@@ -4,6 +4,8 @@ from .serializers import ModuleSerializer, ContentSerializer
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
 
 class ModuleListCreateView(generics.ListCreateAPIView):
     serializer_class = ModuleSerializer
@@ -85,15 +87,37 @@ class ContentListView(generics.ListAPIView):
     def get_queryset(self):
         module_id = self.kwargs['module_id']
         module = Module.objects.get(pk=module_id)
+        user = self.request.user
 
-        if module.course.owner != self.request.user:
+        # Check if the user is the course owner or a student in the course
+        if module.course.owner != user and not module.course.students.filter(id=user.id).exists():
             raise PermissionDenied("You do not have permission to view contents for this module.")
-        
-        return Content.objects.filter(module=module)
 
+        return Content.objects.filter(module=module)
 
 
 class ContentDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ContentSerializer
     permission_classes = [IsAuthenticated]
     queryset = Content.objects.all()
+
+
+from django.contrib.contenttypes.models import ContentType
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework import status, permissions
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def get_content_types(request):
+    """API to get content type mappings dynamically."""
+    try:
+        content_types = {
+            'text': ContentType.objects.get(model='text').id,
+            'image': ContentType.objects.get(model='image').id,
+            'video': ContentType.objects.get(model='video').id,
+            'file': ContentType.objects.get(model='file').id,
+        }
+        return Response(content_types, status=status.HTTP_200_OK)
+    except ContentType.DoesNotExist:
+        return Response({"error": "Failed to retrieve content types."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
