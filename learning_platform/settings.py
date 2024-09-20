@@ -19,9 +19,9 @@ SECRET_KEY = "django-insecure-zkpk(j&fbh_vlq9-g9*(gml(puo8n1@4^k=0hz=c%n8(w=8y&c
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://www.trustmenclinic.com')
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://www.maindo.digital')
 
 # Application definition
 
