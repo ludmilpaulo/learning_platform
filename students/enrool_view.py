@@ -21,17 +21,13 @@ def enroll_user(request):
     name = data.get('name')
     surname = data.get('surname')
     phone_number = data.get('phone_number')
-    date_of_birth = data.get('date_of_birth')
+  
     course_id = data.get('course_id')
 
-    try:
-        # Parse date of birth to be part of the password
-        dob = datetime.strptime(date_of_birth, "%Y-%m-%d").strftime("%Y%m%d")
-    except ValueError:
-        return Response({'detail': 'Data de nascimento inválida.'}, status=status.HTTP_400_BAD_REQUEST)
+  
 
     # Create a custom password using the surname, date_of_birth, and phone_number
-    password = f"{surname}{dob}{phone_number}"
+    password = f"{surname}{phone_number}"
 
     # Check if the user already exists
     user, created = User.objects.get_or_create(
@@ -52,9 +48,7 @@ def enroll_user(request):
             'name': name,
             'surname': surname,
             'phone_number': phone_number,
-            'id_number_or_passport': data.get('id_number_or_passport', ''),
             'gender': data.get('gender', ''),
-            'date_of_birth': date_of_birth,
             'address': data.get('address', ''),
         }
     )

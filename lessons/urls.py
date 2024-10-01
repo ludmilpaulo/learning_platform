@@ -7,6 +7,7 @@ from lessons.tutor_module import add_module_to_course
 from lessons.tutor_module_contents import get_module_contents
 from lessons.tutor_views import ContentDetailView, ContentListView, ModuleDetailView, ModuleListCreateView, get_content_types
 from .views import (
+    CourseDetailView,
     CourseProgressListCreateView,
     CourseProgressDetailView,
     CreateCourseView,
@@ -25,6 +26,7 @@ urlpatterns = [
     path('modules/<int:module_id>/get_contents/', get_module_contents, name='module-contents'),
     path('modules_view/<int:module_id>/contents/', ContentListView.as_view(), name='content-create'),
     path('courses/<int:course_id>/modules/', add_module_to_course, name='add_module_to_course'),
+    path('courses/<int:pk>/', CourseDetailView.as_view(), name='course-detail'),  # Added this route
     path('contents/<int:pk>/', ContentDetailView.as_view(), name='content-detail'),
     path('courses/', CreateCourseView.as_view(), name='course-create'),
     path('courses/user/', UserCoursesView.as_view(), name='user_courses'),  # Adjust this path if needed

@@ -125,6 +125,9 @@ class Image(ItemBase):
 
 class Video(ItemBase):
     url = models.URLField()
+    
+class Live(ItemBase):
+    url = models.URLField()
 
 
 #################################################################################
@@ -137,10 +140,10 @@ class CourseProgress(models.Model):
     completed_modules = models.ManyToManyField(Module, related_name="completed_by_students", blank=True)
     completed_contents = models.ManyToManyField(Content, related_name="completed_by_students", blank=True)
     last_accessed_module = models.ForeignKey(
-        Module, 
-        null=True, 
-        blank=True, 
-        related_name="last_accessed_by", 
+        Module,
+        null=True,
+        blank=True,
+        related_name="last_accessed_by",
         on_delete=models.SET_NULL
     )
 

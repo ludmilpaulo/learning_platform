@@ -44,7 +44,10 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.status import HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_403_FORBIDDEN
 
+
 from django.utils.text import slugify
+
+
 class CreateCourseView(generics.CreateAPIView):
     serializer_class = CourseSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -53,17 +56,16 @@ class CreateCourseView(generics.CreateAPIView):
     def post(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return Response({"error": "Usuário não autenticado"}, status=HTTP_403_FORBIDDEN)
-        
-        print(f"Authenticated user: {request.user}") 
+
         title = request.data.get('title')
         overview = request.data.get('overview')
-        subject_title = request.data.get('subject_title')  # Used for new subject
-        image = request.data.get('image')  # Handling image upload
+        subject_title = request.data.get('subject_title')
+        image = request.data.get('image')
 
         if not title or not overview or not subject_title:
             return Response({"error": "Por favor, forneça todos os campos obrigatórios."}, status=HTTP_400_BAD_REQUEST)
 
-        # Try to fetch subject, if not exists, create it
+        # Try to fetch or create the subject
         subject, created = Subject.objects.get_or_create(title=subject_title, defaults={"slug": slugify(subject_title)})
 
         slug = slugify(title)
@@ -73,12 +75,33 @@ class CreateCourseView(generics.CreateAPIView):
             overview=overview,
             subject=subject,
             slug=slug,
-            image=image  # Save the image
+            image=image
         )
         return Response(CourseSerializer(course).data, status=HTTP_201_CREATED)
 
 
+class CourseDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
 
+    def perform_update(self, serializer):
+        subject_title = self.request.data.get('subject_title')
+        if subject_title:
+            subject, created = Subject.objects.get_or_create(title=subject_title)
+            serializer.save(subject=subject)
+        else:
+            serializer.save()
+
+    def perform_destroy(self, instance):
+        if instance.owner != self.request.user:
+            return Response({"error": "Você não tem permissão para deletar este curso."}, status=HTTP_403_FORBIDDEN)
+        instance.delete()
+
+
+
+######################################################################################
 
 class CourseProgressListCreateView(generics.ListCreateAPIView):
     queryset = CourseProgress.objects.all()
