@@ -1,0 +1,2 @@
+# Ignore SQLite database
+db.sqlite3
