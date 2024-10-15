@@ -7,23 +7,26 @@ import logging
 # Configure logging for debugging
 logging.basicConfig(level=logging.DEBUG)
 
+
 # View to get courses associated with the authenticated user
 class UserCoursesView(generics.ListAPIView):
     serializer_class = CourseSerializer
-    permission_classes = [permissions.IsAuthenticated]  # Ensures the user is authenticated
+    permission_classes = [
+        permissions.IsAuthenticated
+    ]  # Ensures the user is authenticated
 
     def get_queryset(self):
         # Print or log the authenticated user for debugging
         logging.debug(f"Authenticated User: {self.request.user}")
         print(f"Authenticated User: {self.request.user}")  # Debugging: Print user info
-        
+
         # Filter courses by the logged-in user
         queryset = Course.objects.filter(owner=self.request.user)
-        
+
         # Debugging: Print the queryset being returned
         logging.debug(f"Queryset: {queryset}")
         print(f"Queryset: {queryset}")
-        
+
         return queryset
 
     def list(self, request, *args, **kwargs):
@@ -36,13 +39,18 @@ class UserCoursesView(generics.ListAPIView):
             logging.debug("No courses found for this user.")
             print("No courses found for this user.")  # Debugging: No courses found
             return Response({"error": "No courses found for this user."}, status=404)
-        
+
         return super().list(request, *args, **kwargs)
+
 
 from rest_framework import generics, permissions
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.status import HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_403_FORBIDDEN
+from rest_framework.status import (
+    HTTP_201_CREATED,
+    HTTP_400_BAD_REQUEST,
+    HTTP_403_FORBIDDEN,
+)
 
 
 from django.utils.text import slugify
@@ -55,18 +63,25 @@ class CreateCourseView(generics.CreateAPIView):
 
     def post(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return Response({"error": "Usuário não autenticado"}, status=HTTP_403_FORBIDDEN)
+            return Response(
+                {"error": "Usuário não autenticado"}, status=HTTP_403_FORBIDDEN
+            )
 
-        title = request.data.get('title')
-        overview = request.data.get('overview')
-        subject_title = request.data.get('subject_title')
-        image = request.data.get('image')
+        title = request.data.get("title")
+        overview = request.data.get("overview")
+        subject_title = request.data.get("subject_title")
+        image = request.data.get("image")
 
         if not title or not overview or not subject_title:
-            return Response({"error": "Por favor, forneça todos os campos obrigatórios."}, status=HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Por favor, forneça todos os campos obrigatórios."},
+                status=HTTP_400_BAD_REQUEST,
+            )
 
         # Try to fetch or create the subject
-        subject, created = Subject.objects.get_or_create(title=subject_title, defaults={"slug": slugify(subject_title)})
+        subject, created = Subject.objects.get_or_create(
+            title=subject_title, defaults={"slug": slugify(subject_title)}
+        )
 
         slug = slugify(title)
         course = Course.objects.create(
@@ -75,7 +90,7 @@ class CreateCourseView(generics.CreateAPIView):
             overview=overview,
             subject=subject,
             slug=slug,
-            image=image
+            image=image,
         )
         return Response(CourseSerializer(course).data, status=HTTP_201_CREATED)
 
@@ -87,7 +102,7 @@ class CourseDetailView(generics.RetrieveUpdateDestroyAPIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def perform_update(self, serializer):
-        subject_title = self.request.data.get('subject_title')
+        subject_title = self.request.data.get("subject_title")
         if subject_title:
             subject, created = Subject.objects.get_or_create(title=subject_title)
             serializer.save(subject=subject)
@@ -96,12 +111,15 @@ class CourseDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_destroy(self, instance):
         if instance.owner != self.request.user:
-            return Response({"error": "Você não tem permissão para deletar este curso."}, status=HTTP_403_FORBIDDEN)
+            return Response(
+                {"error": "Você não tem permissão para deletar este curso."},
+                status=HTTP_403_FORBIDDEN,
+            )
         instance.delete()
 
 
-
 ######################################################################################
+
 
 class CourseProgressListCreateView(generics.ListCreateAPIView):
     queryset = CourseProgress.objects.all()
@@ -133,7 +151,7 @@ class MarkContentCompleteView(generics.UpdateAPIView):
 
     def update(self, request, *args, **kwargs):
         progress = self.get_object()
-        content_id = kwargs.get('content_id')
+        content_id = kwargs.get("content_id")
         content = Content.objects.get(id=content_id)
 
         if content not in progress.completed_contents.all():

@@ -12,28 +12,25 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from datetime import datetime
 
+
 @csrf_exempt
-@api_view(['POST'])
+@api_view(["POST"])
 @permission_classes([permissions.AllowAny])
 def enroll_user(request):
     data = request.data
-    email = data.get('email')
-    name = data.get('name')
-    surname = data.get('surname')
-    phone_number = data.get('phone_number')
-  
-    course_id = data.get('course_id')
+    email = data.get("email")
+    name = data.get("name")
+    surname = data.get("surname")
+    phone_number = data.get("phone_number")
 
-  
+    course_id = data.get("course_id")
 
     # Create a custom password using the surname, date_of_birth, and phone_number
     password = f"{surname}{phone_number}"
 
     # Check if the user already exists
     user, created = User.objects.get_or_create(
-        username=email,
-        email=email,
-        defaults={'first_name': name, 'last_name': surname}
+        username=email, email=email, defaults={"first_name": name, "last_name": surname}
     )
 
     if created:
@@ -45,27 +42,35 @@ def enroll_user(request):
     profile, _ = StudentProfile.objects.get_or_create(
         user=user,
         defaults={
-            'name': name,
-            'surname': surname,
-            'phone_number': phone_number,
-            'gender': data.get('gender', ''),
-            'address': data.get('address', ''),
-        }
+            "name": name,
+            "surname": surname,
+            "phone_number": phone_number,
+            "gender": data.get("gender", ""),
+            "address": data.get("address", ""),
+        },
     )
 
     # Check if the course exists
     try:
         course = Course.objects.get(id=course_id)
     except Course.DoesNotExist:
-        return Response({'detail': 'Curso não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"detail": "Curso não encontrado."}, status=status.HTTP_404_NOT_FOUND
+        )
 
     # Check if the user is already enrolled in the course
     if course.students.filter(id=user.id).exists():
         progress = CourseProgress.objects.filter(student=user, course=course).first()
         if progress and progress.get_progress_percentage() >= 100:
-            return Response({'detail': 'Você já completou este curso.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Você já completou este curso."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         else:
-            return Response({'detail': 'Você já está inscrito neste curso.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Você já está inscrito neste curso."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     # Enroll the user in the course
     course.students.add(user)
@@ -80,30 +85,36 @@ def enroll_user(request):
     login_url = "{settings.FRONTEND_URL}/Login"  # Change to your actual login URL
 
     # Render the HTML email content
-    html_content = render_to_string('emails/welcome.html', {
-        'name': name,
-        'course_name': course_name,
-        'instructor_name': instructor_name,
-        'email': email,
-        'password': password,
-        'login_url': login_url,
-    })
+    html_content = render_to_string(
+        "emails/welcome.html",
+        {
+            "name": name,
+            "course_name": course_name,
+            "instructor_name": instructor_name,
+            "email": email,
+            "password": password,
+            "login_url": login_url,
+        },
+    )
 
     # Create the email message
     email_message = EmailMultiAlternatives(
         subject=subject,
-        body='Bem-vindo ao curso!',  # Fallback plain-text message
+        body="Bem-vindo ao curso!",  # Fallback plain-text message
         from_email=settings.EMAIL_HOST_USER,
-        to=[email]
+        to=[email],
     )
     email_message.attach_alternative(html_content, "text/html")
     email_message.send()
 
-    return Response({
-        'detail': 'Inscrição realizada com sucesso!',
-        'token': token.key,
-        'user_id': user.id,
-        'username': user.username,
-        'is_staff': user.is_staff,
-        'is_superuser': user.is_superuser
-    }, status=status.HTTP_201_CREATED)
+    return Response(
+        {
+            "detail": "Inscrição realizada com sucesso!",
+            "token": token.key,
+            "user_id": user.id,
+            "username": user.username,
+            "is_staff": user.is_staff,
+            "is_superuser": user.is_superuser,
+        },
+        status=status.HTTP_201_CREATED,
+    )

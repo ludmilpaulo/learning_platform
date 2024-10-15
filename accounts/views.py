@@ -20,43 +20,58 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 @permission_classes([AllowAny])
 class UserSignupView(APIView):
     def post(self, request):
-        username = request.data.get('username')
-        email = request.data.get('email')
-        password = request.data.get('password')
-        
+        username = request.data.get("username")
+        email = request.data.get("email")
+        password = request.data.get("password")
+
         logger.debug(f"Received data: username={username}, email={email}")
 
         if not username or not email or not password:
-            logger.error('Missing fields')
-            return Response({'error': 'All fields are required.'}, status=status.HTTP_400_BAD_REQUEST)
+            logger.error("Missing fields")
+            return Response(
+                {"error": "All fields are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if User.objects.filter(username=username).exists():
-            logger.error('Username already exists')
-            return Response({'error': 'Username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        if User.objects.filter(email=email).exists():
-            logger.error('Email already exists')
-            return Response({'error': 'Email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+            logger.error("Username already exists")
+            return Response(
+                {"error": "Username already exists."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        user = User.objects.create_user(username=username, email=email, password=password)
+        if User.objects.filter(email=email).exists():
+            logger.error("Email already exists")
+            return Response(
+                {"error": "Email already exists."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = User.objects.create_user(
+            username=username, email=email, password=password
+        )
         token, created = Token.objects.get_or_create(user=user)
 
-        return Response({
-            'token': token.key,
-            'user_id': user.id,
-            'username': user.username,
-            'is_staff': user.is_staff,
-            'is_superuser': user.is_superuser
-        }, status=status.HTTP_201_CREATED)
+        return Response(
+            {
+                "token": token.key,
+                "user_id": user.id,
+                "username": user.username,
+                "is_staff": user.is_staff,
+                "is_superuser": user.is_superuser,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
 
 @permission_classes([AllowAny])
 class UserLoginView(APIView):
     def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
+        username = request.data.get("username")
+        password = request.data.get("password")
 
         try:
             user = User.objects.get(username=username)
@@ -65,31 +80,40 @@ class UserLoginView(APIView):
                 user = User.objects.get(email=username)
             except User.DoesNotExist:
                 print("user don't exist")
-                return Response({'error': 'Nome de usuário ou e-mail não existe'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"error": "Nome de usuário ou e-mail não existe"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         user = authenticate(username=user.username, password=password)
         if user is not None:
             token, created = Token.objects.get_or_create(user=user)
-            return Response({
-                'token': token.key,
-                'user_id': user.id,
-                'username': user.username,
-                'is_staff': user.is_staff,
-                'is_superuser': user.is_superuser
-            }, status=status.HTTP_200_OK)
+            return Response(
+                {
+                    "token": token.key,
+                    "user_id": user.id,
+                    "username": user.username,
+                    "is_staff": user.is_staff,
+                    "is_superuser": user.is_superuser,
+                },
+                status=status.HTTP_200_OK,
+            )
         else:
-            return Response({'error': 'Incorrect password'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Incorrect password"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
 
 @permission_classes([AllowAny])
 class PasswordResetView(APIView):
     def post(self, request):
-        email = request.data.get('email')
+        email = request.data.get("email")
         try:
             user = User.objects.get(email=email)
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
-            reset_url = f'{settings.FRONTEND_URL}/ResetPassword?uid={uid}&token={token}'
-            subject = 'Password Reset Request'
+            reset_url = f"{settings.FRONTEND_URL}/ResetPassword?uid={uid}&token={token}"
+            subject = "Password Reset Request"
             message = f"""
             <!DOCTYPE html>
             <html lang="en">
@@ -159,34 +183,53 @@ class PasswordResetView(APIView):
             </body>
             </html>
             """
-            send_mail(subject, '', settings.DEFAULT_FROM_EMAIL, [user.email], html_message=message)
-            return Response({'detail': 'Password reset email sent.'}, status=status.HTTP_200_OK)
+            send_mail(
+                subject,
+                "",
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+                html_message=message,
+            )
+            return Response(
+                {"detail": "Password reset email sent."}, status=status.HTTP_200_OK
+            )
         except User.DoesNotExist:
-            return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "User with this email does not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
 
 @permission_classes([AllowAny])
 class PasswordResetConfirmView(APIView):
     def post(self, request):
-        uid = request.data.get('uid')
-        token = request.data.get('token')
-        new_password = request.data.get('newPassword')
+        uid = request.data.get("uid")
+        token = request.data.get("token")
+        new_password = request.data.get("newPassword")
         try:
             uid = force_str(urlsafe_base64_decode(uid))
             user = User.objects.get(pk=uid)
             if default_token_generator.check_token(user, token):
                 user.set_password(new_password)
                 user.save()
-                return Response({'detail': 'Password has been reset.'}, status=status.HTTP_200_OK)
-            return Response({'error': 'Invalid token.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"detail": "Password has been reset."}, status=status.HTTP_200_OK
+                )
+            return Response(
+                {"error": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST
+            )
         except (User.DoesNotExist, ValueError):
-            return Response({'error': 'Invalid user.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Invalid user."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+
 class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
-
 
 
 import logging
@@ -198,23 +241,24 @@ from .serializers import UserSerializer
 
 logger = logging.getLogger(__name__)
 
-@api_view(['GET'])
+
+@api_view(["GET"])
 @permission_classes([AllowAny])
 def get_user_profile(request, user_id):
-    logger.debug(f'Received user_id: {user_id}')
+    logger.debug(f"Received user_id: {user_id}")
     try:
         user = User.objects.get(id=user_id)
         serializer = UserSerializer(user)
         return Response(serializer.data)
     except User.DoesNotExist:
-        logger.error(f'User with id {user_id} not found')
+        logger.error(f"User with id {user_id} not found")
         return Response({"error": "User not found"}, status=404)
 
 
-@api_view(['PUT'])
+@api_view(["PUT"])
 @permission_classes([AllowAny])
 def update_user_profile(request, user_id):
-    logger.debug(f'Received user_id: {user_id}')
+    logger.debug(f"Received user_id: {user_id}")
     try:
         user = User.objects.get(id=user_id)
         serializer = UserSerializer(user, data=request.data, partial=True)
@@ -223,7 +267,5 @@ def update_user_profile(request, user_id):
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
     except User.DoesNotExist:
-        logger.error(f'User with id {user_id} not found')
+        logger.error(f"User with id {user_id} not found")
         return Response({"error": "User not found"}, status=404)
-
-
