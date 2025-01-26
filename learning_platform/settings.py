@@ -79,12 +79,15 @@ WSGI_APPLICATION = "learning_platform.wsgi.application"
 
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'ludmil$learning_system',  # Your MySQL database name
+        'USER': 'ludmil',                  # Your MySQL username
+        'PASSWORD': 'Maitland@2024',       # Your MySQL password
+        'HOST': 'ludmil.mysql.pythonanywhere-services.com',  # MySQL host
+        'PORT': '3306',                    # Default MySQL port
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
