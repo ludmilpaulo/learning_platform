@@ -159,3 +159,31 @@ class MarkContentCompleteView(generics.UpdateAPIView):
             progress.save()
 
         return Response(self.get_serializer(progress).data)
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import permissions, status
+
+
+class RemoveStudentFromCourseView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, course_id, student_id, *args, **kwargs):
+        try:
+            # Get the course
+            course = Course.objects.get(id=course_id, owner=request.user)
+
+            # Check if the student exists in the course
+            if not course.students.filter(id=student_id).exists():
+                return Response({"error": "Student not found in the course."}, status=status.HTTP_404_NOT_FOUND)
+
+            # Remove the student
+            course.students.remove(student_id)
+
+            return Response({"message": "Student removed from the course successfully."}, status=status.HTTP_200_OK)
+
+        except Course.DoesNotExist:
+            return Response({"error": "Course not found or you don't have permission to manage it."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -23,6 +23,7 @@ from .views import (
     CourseProgressDetailView,
     CreateCourseView,
     MarkContentCompleteView,
+    RemoveStudentFromCourseView,
     UserCoursesView,
 )
 
@@ -92,4 +93,5 @@ urlpatterns = [
     ),
     path('courses/<int:course_id>/content/<int:content_id>/complete/', mark_content_complete, name='mark_content_complete'),
     path('courses/<int:course_id>/module/<int:module_id>/complete/', mark_module_complete, name='mark_module_complete'),
+    path('courses/<int:course_id>/remove-student/<int:student_id>/', RemoveStudentFromCourseView.as_view(), name='remove-student'),
 ]
