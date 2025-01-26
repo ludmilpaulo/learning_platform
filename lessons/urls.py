@@ -1,6 +1,7 @@
 from django.urls import path
 
 from lessons.content import CreateContentView
+from lessons.courseProgress import mark_module_complete
 from lessons.students_progress import (
     activate_student,
     deactivate_student,
@@ -16,7 +17,7 @@ from lessons.tutor_views import (
     ModuleListCreateView,
     get_content_types,
 )
-from students.module_content import mark_content_complete, mark_module_complete
+from students.module_content import mark_content_complete
 from .views import (
     CourseDetailView,
     CourseProgressListCreateView,
@@ -92,6 +93,8 @@ urlpatterns = [
         name="mark_content_complete",
     ),
     path('courses/<int:course_id>/content/<int:content_id>/complete/', mark_content_complete, name='mark_content_complete'),
-    path('courses/<int:course_id>/module/<int:module_id>/complete/', mark_module_complete, name='mark_module_complete'),
+  #  path('courses/<int:course_id>/module/<int:module_id>/complete/', mark_module_complete, name='mark_module_complete'),
     path('courses/<int:course_id>/remove-student/<int:student_id>/', RemoveStudentFromCourseView.as_view(), name='remove-student'),
+    path("mark_module_complete/<int:course_id>/<int:module_id>/", mark_module_complete, name="mark_module_complete"),
+
 ]
